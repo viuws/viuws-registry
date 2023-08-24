@@ -1,19 +1,17 @@
 name: Region properties
-description: Measure properties of labeled image regions.
+description: Measure properties of labeled image regions using scikit-image.
 category: Measurement
 container:
   image: ghcr.io/viuws/skimage-measure
 input_channels:
   - name: Labels
-    description: Labeled input image. Labels with value 0 are ignored.
-    supported_file_pattern: "*.tif" # TODO
+    description: Labeled input images. Labels with value 0 are ignored.
     required: true
   - name: Images
     description: >
-      Intensity image with same size as labeled image, plus optionally an extra 
-      dimension for multichannel data. The extra channel dimension, if present,
+      Intensity images with the same size as the labeled images, plus optionally an
+      extra dimension for multichannel data. The extra channel dimension, if present,
       must be the last axis.
-    supported_file_pattern: "*.tif" # TODO
 output_channels:
   - name: Regions
     description: >
