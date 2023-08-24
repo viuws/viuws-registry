@@ -1,0 +1,3 @@
+processes:
+  - napari: processes/napari/process.yaml
+  - skimage-measure: processes/skimage-measure/process.yaml
