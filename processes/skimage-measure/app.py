@@ -26,7 +26,7 @@ FILE_LIST_NAME = "files.txt"
     "--images",
     "images_path",
     type=click.Path(exists=True, readable=True, path_type=Path),
-    description="Path to images or image file list.",
+    help="Path to images or image file list.",
 )
 @click.option(
     "-p",
@@ -34,7 +34,7 @@ FILE_LIST_NAME = "files.txt"
     "properties",
     type=click.STRING,
     multiple=True,
-    description=(
+    help=(
         "Property that will be included in the resulting table. "
         "Specify multiple times to include multiple properties. "
         "The `label` property is automatically included. "
@@ -46,7 +46,7 @@ FILE_LIST_NAME = "files.txt"
     "cache",
     default=True,
     show_default=True,
-    description=(
+    help=(
         "Determine whether to cache calculated properties. "
         "The computation is much faster for cached properties, "
         "whereas the memory consumption increases."
@@ -56,7 +56,7 @@ FILE_LIST_NAME = "files.txt"
     "--spacing",
     "spacing_str",
     type=click.STRING,
-    description=(
+    help=(
         "The pixel spacing along each axis of the image. "
         "Specify as a comma-separated list, with one value for each axis."
     ),
