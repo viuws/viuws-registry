@@ -151,4 +151,4 @@ def get_files(
 
 
 if __name__ == "__main__":
-    cli()
+    cli(prog_name="skimage-measure")
