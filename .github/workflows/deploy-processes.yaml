@@ -1,4 +1,3 @@
-name: Create and publish Docker images
 on:
   push:
     branches:
@@ -12,23 +11,21 @@ on:
 env:
   REGISTRY: ghcr.io
 jobs:
-  build-and-push-images:
+  build-and-publish-processes:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        include:
-          - image: viuws/skimage-measure
-            context: processes/skimage-measure
+        process: [skimage-measure]
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/metadata-action@v4
         id: meta
         with:
-          images: ${{ env.REGISTRY}}/${{ matrix.image }}
+          images: ${{ env.REGISTRY}}/viuws/${{ matrix.process }}
           tags: |
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
@@ -42,7 +39,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v4
         with:
-          context: ${{ matrix.context}}
+          context: processes/${{ matrix.process }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
