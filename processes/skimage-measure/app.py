@@ -22,34 +22,44 @@ FILE_LIST_NAME = "files.txt"
     type=click.Path(writable=True, path_type=Path),
 )
 @click.option(
+    "-i",
     "--images",
     "images_path",
     type=click.Path(exists=True, readable=True, path_type=Path),
+    description="Path to images or image file list.",
 )
 @click.option(
     "-p",
     "--property",
     "properties",
-    multiple=True,
     type=click.STRING,
+    multiple=True,
+    description=(
+        "Property that will be included in the resulting table. "
+        "Specify multiple times to include multiple properties. "
+        "The `label` property is automatically included. "
+        "See https://scikit-image.org/docs/stable/api/skimage.measure.html"
+    ),
 )
 @click.option(
     "--cache/--no-cache",
     "cache",
     default=True,
     show_default=True,
-)
-@click.option(
-    "--separator",
-    "separator",
-    type=click.STRING,
-    default="-",
-    show_default=True,
+    description=(
+        "Determine whether to cache calculated properties. "
+        "The computation is much faster for cached properties, "
+        "whereas the memory consumption increases."
+    ),
 )
 @click.option(
     "--spacing",
     "spacing_str",
     type=click.STRING,
+    description=(
+        "The pixel spacing along each axis of the image. "
+        "Specify as a comma-separated list, with one value for each axis."
+    ),
 )
 def cli(
     labels_path: Path,
@@ -57,7 +67,6 @@ def cli(
     images_path: Optional[Path],
     properties: Optional[list[str]],
     cache: bool,
-    separator: str,
     spacing_str: Optional[str],
 ) -> None:
     labels_urls = _get_urls(labels_path)
@@ -69,7 +78,10 @@ def cli(
             raise click.BadParameter("Number of labels and images do not match")
     else:
         images_urls = [None] * len(labels_urls)
-    if not properties:
+    if properties:
+        if "label" not in properties:
+            properties.append("label")
+    else:
         properties = None
     spacing: Optional[tuple[float, ...]]
     if spacing_str is not None:
@@ -87,13 +99,11 @@ def cli(
                 intensity_image=image,
                 properties=properties,
                 cache=cache,
-                separator=separator,
                 spacing=spacing,
             ),
             index_col="label",
         )
         regions.to_csv(regions_url)
-        click.echo(regions_url)
         del labels, image, regions
 
 
