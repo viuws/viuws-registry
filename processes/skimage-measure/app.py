@@ -1,32 +1,29 @@
-from pathlib import Path
 from typing import Optional, Union
-from urllib.parse import urlparse
 
 import click
 import pandas as pd
 from imageio import imread
 from skimage.measure import regionprops_table
-
-FILE_LIST_NAME = "files.txt"
+from upath import UPath
 
 
 @click.command()
 @click.argument(
-    "labels_path",
+    "labels_files_uri",
     metavar="LABELS",
-    type=click.Path(exists=True, readable=True, path_type=Path),
+    type=click.STRING,
 )
 @click.argument(
-    "regions_path",
+    "regions_files_uri",
     metavar="REGIONS",
-    type=click.Path(writable=True, path_type=Path),
+    type=click.STRING,
 )
 @click.option(
     "-i",
     "--images",
-    "images_path",
-    type=click.Path(exists=True, readable=True, path_type=Path),
-    help="Path to images or image file list.",
+    "image_files_uri",
+    type=click.STRING,
+    help="URI of images or image file list.",
 )
 @click.option(
     "-p",
@@ -40,6 +37,13 @@ FILE_LIST_NAME = "files.txt"
         "The `label` property is automatically included. "
         "See https://scikit-image.org/docs/stable/api/skimage.measure.html"
     ),
+)
+@click.option(
+    "--by-name/--alphabetically",
+    "by_name",
+    default=False,
+    show_default=True,
+    help="Determines whether to match images to labels by name or alphabetically.",
 )
 @click.option(
     "--cache/--no-cache",
@@ -62,37 +66,48 @@ FILE_LIST_NAME = "files.txt"
     ),
 )
 def cli(
-    labels_path: Path,
-    regions_path: Path,
-    images_path: Optional[Path],
+    labels_files_uri: str,
+    regions_files_uri: str,
+    image_files_uri: Optional[str],
     properties: Optional[list[str]],
+    by_name: bool,
     cache: bool,
     spacing_str: Optional[str],
 ) -> None:
-    labels_urls = _get_urls(labels_path)
-    regions_urls = _get_urls(regions_path, names=_get_names(labels_urls, suffix=".csv"))
-    images_urls: list[Union[str, None]]
-    if images_path is not None:
-        images_urls = _get_urls(images_path)
-        if len(images_urls) != len(labels_urls):
-            raise click.BadParameter("Number of labels and images do not match")
+    labels_files = get_files(labels_files_uri)
+    labels_file_names = [labels_file.name for labels_file in labels_files]
+    regions_files = get_files(
+        regions_files_uri, file_names=labels_file_names, suffix=".csv"
+    )
+    if image_files_uri is not None:
+        image_files = get_files(
+            image_files_uri, file_names=labels_file_names if by_name else None
+        )
+        if len(image_files) != len(labels_files):
+            raise click.BadParameter(
+                "Number of image files does not match number of labels files"
+            )
     else:
-        images_urls = [None] * len(labels_urls)
+        image_files = [None] * len(labels_files)
     if properties:
         if "label" not in properties:
             properties.append("label")
     else:
         properties = None
-    spacing: Optional[tuple[float, ...]]
     if spacing_str is not None:
         spacing = tuple(float(s) for s in spacing_str.split(","))
     else:
         spacing = None
-    for labels_url, images_url, regions_url in zip(
-        labels_urls, images_urls, regions_urls
+    for labels_file, image_file, regions_file in zip(
+        labels_files, image_files, regions_files
     ):
-        labels = imread(labels_url)
-        image = imread(images_url) if images_url is not None else None
+        with labels_file.open("rb") as f:
+            labels = imread(f)
+        if image_file is not None:
+            with image_file.open("rb") as f:
+                image = imread(f)
+        else:
+            image = None
         regions = pd.DataFrame(
             data=regionprops_table(
                 labels,
@@ -103,30 +118,36 @@ def cli(
             ),
             index_col="label",
         )
-        regions.to_csv(regions_url)
+        with regions_file.open("w") as f:
+            regions.to_csv(f)
         del labels, image, regions
 
 
-def _get_urls(path: Path, names: Optional[list[str]] = None) -> list[str]:
+def get_files(
+    path: Union[str, UPath],
+    pattern: str = "*",
+    file_names: Optional[list[str]] = None,
+    suffix: Optional[str] = None,
+) -> list[UPath]:
+    if not isinstance(path, UPath):
+        path = UPath(path).resolve()
     if path.is_file():
-        if path.name == FILE_LIST_NAME:
-            return path.read_text().splitlines()
-        return [str(path)]
-    if path.is_dir():
-        if names is not None:
-            return [str(path / name) for name in names]
-        return sorted(str(p) for p in path.glob("*") if p.is_file())
-    raise click.BadParameter(f"Not a file or directory: {path}")
-
-
-def _get_names(urls: list[str], suffix: Optional[str] = None) -> list[str]:
-    names: list[str] = []
-    for url in urls:
-        path = Path(urlparse(url).path)
-        if suffix is not None:
-            path = path.with_suffix(suffix)
-        names.append(path.name)
-    return names
+        if path.suffix.lower() == ".list":
+            file_paths = [
+                UPath(line).resolve() for line in path.read_text().splitlines() if line
+            ]
+        else:
+            file_paths = [path]
+    elif path.is_dir():
+        if file_names is not None:
+            file_paths = [path / file_name for file_name in file_names]
+        else:
+            file_paths = sorted(p for p in path.glob(pattern) if p.is_file())
+    else:
+        raise ValueError("path")
+    if suffix is not None:
+        file_paths = [file_path.with_suffix(suffix) for file_path in file_paths]
+    return file_paths
 
 
 if __name__ == "__main__":

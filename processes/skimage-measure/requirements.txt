@@ -2,3 +2,4 @@ click
 imageio
 pandas
 scikit-image
+universal_pathlib
