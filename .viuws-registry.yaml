@@ -1,0 +1,3 @@
+processes:
+  - napari: .viuws/processes/napari/process.yaml
+  - skimage-measure: .viuws/processes/skimage-measure/process.yaml
