@@ -1,5 +1,5 @@
 processes:
   - id: napari
-    path: processes/napari/process.yaml
-  - id: skimage-measure
-    path: processes/skimage-measure/process.yaml
+    path: processes/napari.yaml
+  - id: regionprops
+    path: processes/regionprops.yaml
