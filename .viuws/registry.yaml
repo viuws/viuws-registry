@@ -1,5 +1,4 @@
-processes:
-  - id: napari
-    path: processes/napari.yaml
-  - id: regionprops
-    path: processes/regionprops.yaml
+modules:
+    - id: regionprops
+      path: modules/regionprops.yaml
+plugins: []
